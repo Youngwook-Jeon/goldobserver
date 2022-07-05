@@ -1,0 +1,5 @@
+*.exe
+*.dll
+*.out
+
+go.work
