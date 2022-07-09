@@ -3,3 +3,4 @@
 *.out
 
 go.work
+*.png
