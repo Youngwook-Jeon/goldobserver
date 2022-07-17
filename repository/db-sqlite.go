@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -67,4 +68,66 @@ func (repo *SQLiteRepository) AllHoldings() ([]Holdings, error) {
 	}
 
 	return all, nil
+}
+
+func (repo *SQLiteRepository) GetHoldingByID(id int) (*Holdings, error) {
+	row := repo.Conn.QueryRow("select id, amount, purchase_date, purchase_price from holdings where id = ?", id)
+
+	var h Holdings
+	var unixTime int64
+	err := row.Scan(
+		&h.ID,
+		&h.Amount,
+		&unixTime,
+		&h.PurchasePrice,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	h.PurchaseDate = time.Unix(unixTime, 0)
+
+	return &h, nil
+}
+
+func (repo *SQLiteRepository) UpdateHolding(id int64, updated Holdings) error {
+	if id == 0 {
+		return errors.New("invalid updated id")
+	}
+
+	stmt := "update holdings set amount = ?, purchase_date = ?, purchase_price = ? where id = ?"
+	res, err := repo.Conn.Exec(stmt, updated.Amount, updated.PurchaseDate.Unix(), updated.PurchasePrice, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errUpdateFailed
+	}
+
+	return nil
+}
+
+func (repo *SQLiteRepository) DeleteHolding(id int64) error {
+	res, err := repo.Conn.Exec("delete from holdings where id = ?", id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errDeleteFailed
+	}
+
+	return nil
 }
