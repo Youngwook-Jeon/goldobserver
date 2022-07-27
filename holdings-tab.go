@@ -13,35 +13,40 @@ import (
 )
 
 func (app *Config) holdingsTab() *fyne.Container {
+	app.Holdings = app.getHoldingSlice()
 	app.HoldingsTable = app.getHoldingsTable()
-	holdingsContainer := container.NewVBox(app.HoldingsTable)
+	holdingsContainer := container.NewBorder(
+		nil,
+		nil,
+		nil,
+		nil,
+		container.NewAdaptiveGrid(1, app.HoldingsTable),
+	)
 
 	return holdingsContainer
 }
 
 func (app *Config) getHoldingsTable() *widget.Table {
-	data := app.getHoldingSlice()
-	app.Holdings = data
-
 	t := widget.NewTable(
 		func() (int, int) {
-			return len(data), len(data[0])
+			return len(app.Holdings), len(app.Holdings[0])
 		},
 		func() fyne.CanvasObject {
 			ctr := container.NewVBox(widget.NewLabel(""))
 			return ctr
 		},
 		func(tci widget.TableCellID, co fyne.CanvasObject) {
-			if tci.Col == (len(data[0])-1) && tci.Row != 0 {
+			if tci.Col == (len(app.Holdings[0])-1) && tci.Row != 0 {
 				// last cell - put in a button
 				w := widget.NewButtonWithIcon("Delete", theme.DeleteIcon(), func() {
 					dialog.ShowConfirm("Delete?", "", func(deleted bool) {
-						id, _ := strconv.Atoi(data[tci.Row][0].(string))
-						err := app.DB.DeleteHolding(int64(id))
-						if err != nil {
-							app.ErrorLog.Println(err)
+						if deleted {
+							id, _ := strconv.Atoi(app.Holdings[tci.Row][0].(string))
+							err := app.DB.DeleteHolding(int64(id))
+							if err != nil {
+								app.ErrorLog.Println(err)
+							}
 						}
-
 						// refresh the holdings table
 						app.refreshHoldingsTable()
 					}, app.MainWindow)
@@ -54,7 +59,7 @@ func (app *Config) getHoldingsTable() *widget.Table {
 			} else {
 				// we are just putting in textual info
 				co.(*fyne.Container).Objects = []fyne.CanvasObject{
-					widget.NewLabel(data[tci.Row][tci.Col].(string)),
+					widget.NewLabel(app.Holdings[tci.Row][tci.Col].(string)),
 				}
 			}
 		},
@@ -83,7 +88,7 @@ func (app *Config) getHoldingSlice() [][]interface{} {
 
 		currentRow = append(currentRow, strconv.FormatInt(x.ID, 10))
 		currentRow = append(currentRow, fmt.Sprintf("%d toz", x.Amount))
-		currentRow = append(currentRow, fmt.Sprintf("$%2f", float32(x.PurchasePrice/100)))
+		currentRow = append(currentRow, fmt.Sprintf("$%.2f", float32(x.PurchasePrice/100)))
 		currentRow = append(currentRow, x.PurchaseDate.Format("2006-01-02"))
 		currentRow = append(currentRow, widget.NewButton("Delete", func() {}))
 
