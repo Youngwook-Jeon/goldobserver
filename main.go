@@ -52,6 +52,8 @@ func main() {
 	// create a db repository
 	myApp.setupDB(sqlDB)
 
+	currency = fyneApp.Preferences().StringWithFallback("currency", "KRW")
+
 	// create and size a fyne window
 	myApp.MainWindow = fyneApp.NewWindow("GoldObserver")
 	myApp.MainWindow.Resize(fyne.NewSize(770, 410))
